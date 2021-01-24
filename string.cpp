@@ -27,6 +27,7 @@ String::String(const String &str) {
  * @brief Initiates a string from char array
  */
 String::String(const char *str) {
+	// test if str is an empty string
 	if (str == NULL || str[0] == '\0') {
 		data = new char[1];
 		data[0] = '\0';
@@ -47,17 +48,19 @@ String::~String() {
  * @brief Changes this from String
  */
 String& String::operator=(const String &rhs) {
-	length=rhs.length;
-	if (length == 0) {
-		data = NULL;
+	this->length = rhs.length;
+	if (this->data != NULL) {
+		delete[] data;
+	}
+	// test if rhs is an empty String
+	if (rhs.data == NULL || rhs.data[0] == '\0' || rhs.data[0] == '\n') {
+		length = 0;
+		data = new char[1];
+		data[0] = '\0';
 		return *this;
 	}
-	char *tmp_data=data;
-	data=new char[length+1];
-	if(tmp_data!=NULL) {
-        delete[] tmp_data;
-    }
-	strcpy(data,rhs.data);
+	this->data = new char[length+1];
+	strcpy(this->data,rhs.data);
 	return *this;
 }
 
@@ -65,17 +68,19 @@ String& String::operator=(const String &rhs) {
  * @brief Changes this from char array
  */
 String& String::operator=(const char *str){
-	if (str == NULL || str[0] == '\0') {
-		length = 1;
-		data = NULL;
+	if (this->data != NULL) {
+		delete[] data;
+	}
+	// test if str is an empty string
+	if (str == NULL || str[0] == '\0' || str[0] == '\n') {
+		length = 0;
+		data = new char[1];
+		data[0] = '\0';
 		return *this;
 	}
-	length=strlen(str);
-	char *tmp_data=data;
-	data=new char[length+1];
-	if(tmp_data!=NULL) {
-        delete[] tmp_data;
-    }
+	size_t other_length = strlen(str);
+	this->length = other_length;
+	this->data = new char[length+1];
 	strcpy(data,str);
 	return *this;
 }
@@ -97,16 +102,10 @@ bool String::equals(const String &rhs) const {
  * @brief Returns true iff the contents of this equals to rhs
  */
 bool String::equals(const char *rhs) const {
-	std::cout << "this string: |" << data << "|" <<std::endl;
-	std::cout << "other string: |" << rhs << "|" <<std::endl;
 	if (strcmp(data,rhs)==0 ) {
-		std::cout << "EQUALS!" << std::endl;
-		std::cout << std::endl;
 		return true;
 	}
 	else {
-		std::cout << "DIFFERENT!" << std::endl;
-		std::cout << std::endl;
 		return false;
 	}
 }
@@ -119,53 +118,46 @@ bool String::equals(const char *rhs) const {
  * compute "size".
  */
 void String::split(const char *delimiters, String **output, size_t *size) const{
-
-	//unsigned int delimetes_length = std::strlen(delimiters);
-
-	// Finding the amount of delimeters in string
-	int delimeters_count=0;
-	for(size_t i=0;i<length;i++) {
-		for(size_t j=0;j<strlen(delimiters);j++) {
-			if(data[i]==delimiters[j]) {
-				//std::cout << "Found delimeter " << delimeters[j] << " in position: " << i << std::endl;
-				delimeters_count++;
-			}
-		}
-	}
-
-	*size = delimeters_count + 1;
-	if (output == NULL) {
+	// if this is empty, return 1-cell array containing this
+	if (data == NULL || data[0] == '\0') {
+		*output=new String[1];
+		(*output)[0]=*this;
 		return;
 	}
-	*output = new String[delimeters_count + 1];
 
-	bool skip=false;
-	int cur_out=0,num_chars=0;
-	char *tmp_data=new char[length+1];
-	for(size_t i=0;i<length;i++) {
-		skip=false;
-		for(size_t j=0;j<strlen(delimiters);j++) {
-			if(data[i]==delimiters[j]) {
-				skip=true;
-				break;
-			}
-		}
-		if(!skip) {
-			tmp_data[num_chars]=data[i];
-			num_chars++;
-		}
-		else {
-			tmp_data[num_chars]='\0';
-			num_chars++;
-			char *tmp_str=new char[num_chars];
-			strncpy(tmp_str,tmp_data,num_chars+1);
-			*output[cur_out]=tmp_str;
-			cur_out++;
-			num_chars=0;
-		}
+	// store this' fields in tmp
+	char *delimiters_tmp = new char[strlen(delimiters)+1];
+	strcpy(delimiters_tmp,delimiters);
+	char* tmp_str = new char[length+1];
+	strcpy(tmp_str, data);
+
+	// Find the amount of parts in the string
+	size_t count=0;
+	char *del_loc=strtok(tmp_str,delimiters_tmp);
+	while(del_loc!=NULL) {
+		count++;
+		del_loc=strtok(NULL,delimiters_tmp);
+	}
+	*size = count;
+
+	if (output == NULL) {
+		delete[] tmp_str;
+		delete[] del_loc;
+		return;
 	}
 
-	delete[] tmp_data;	
+	*output = new String[count];
+	strcpy(tmp_str, data);
+	del_loc=strtok(tmp_str,delimiters_tmp);
+	int output_ind=0;
+	while(del_loc!=NULL) {
+		(*output)[output_ind] = String(del_loc);
+		output_ind++;
+		del_loc=strtok(NULL,delimiters_tmp);
+	}
+
+	delete[] tmp_str;
+	delete[] del_loc;
 
 }
 
@@ -192,6 +184,8 @@ int String::to_integer() const {
  */
 String String::trim() const {
 	int begin_space=0,end_space=0;
+
+	// amount of spaces in the beginning
 	for(size_t i=0;i<length;i++) {
 		if(data[i]==' '){
 			begin_space++;
@@ -200,6 +194,7 @@ String String::trim() const {
 			break;
 		}
 	}
+	// amount of spaces in the end
 	for(size_t i=0;i<length;i++) {
 		if(data[length-i-1]==' '){
 			end_space++;
@@ -208,10 +203,16 @@ String String::trim() const {
 			break;
 		}
 	}
+
+	// if this is spaces only - return empty String
 	if((int)length-end_space-begin_space<0) {
 		return String();
 	}
-	char *newstr=new char[length-end_space-begin_space];
+
+	char *newstr=new char[length-end_space-begin_space+1];
 	strncpy(newstr,data+begin_space,length-end_space-begin_space);
-	return String(newstr);
+	newstr[length-end_space-begin_space] = '\0';
+	String ret(newstr);
+	delete[] newstr;
+	return ret;
 }

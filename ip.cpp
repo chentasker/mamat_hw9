@@ -20,7 +20,7 @@ unsigned int get_ip_int(String val_str) {
 	size_t size;
 	val_str.split(".", &str_array, &size);
 	if (size != SEGMENTS)
-		return FAIL
+		return FAIL;
 	int *values = new int[SEGMENTS];
 	for (int i = 0; i < SEGMENTS; i++) {
 		String trimmed_str=str_array[i].trim();
@@ -47,7 +47,7 @@ bool Ip::set_value(String val) {
 	unsigned int val_int = get_ip_int(field0);
 	
 	// check if get_ip_int failed
-    if(val_int== FAIL) {
+    if((signed int)val_int == FAIL) {
         delete[] rule_fields;
         return false;
     }
